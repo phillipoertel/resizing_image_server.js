@@ -1,19 +1,36 @@
 A server to resize images and serve them immediately, implemented with node.js and Image Magick.
 
-Example: 
-Request http://127.0.0.1:8000/150/image.jpg, and it sends image.jpg in width 150 to the client, regardless if it existed earlier.
+== Example == 
 
-It the image exists, it will be served directly. If not, it is created, cached and then served.
+Request http://127.0.0.1:8000/200/sammy-davis-jr.jpg, and it sends this in width 200, regardless if this size existed earlier. The only requirement is that the original size image exists.
 
-The size in the URL can be anything that Image Magick accepts as geometry (http://is.gd/cjcci), if you create a directory with the geometry string. That way you can control which sizes are available.
+It the resized image already exists, it will be served directly. If not, it is created, cached and served.
 
-To use, set up the following directory structure:
-`-- resizing_image_server
-    `-- images
-        |-- originals
-        `-- resized
-            |-- size 1
-            |-- size 2
-            |-- ...
+== Installation
 
-This is a alpha software. 
+Install node.js first: http://nodejs.org/#download
+
+> git clone git@github.com:phillipoertel/resizing_image_server.js.git resizing_image_server
+> cd resizing_image_server
+>  rake setup_directories
+This will set up the following structure:
+`-- images
+    |-- originals
+    `-- resized
+        |-- 100
+        |-- 200
+
+> node resizing_image_server.js`
+
+Now point your browser to: http://127.0.0.1:8000/200/sammy-davis-jr.jpg
+
+== Adding more sizes ==
+
+To add a new size, create a new directory below "resized".
+This is the only way you control which image sizes are available.
+
+Sizes currently can only be URL- and filesystem neutral strings, but with a bit of escaping all Image Magick geometry strings (http://is.gd/cjcci) should be supportable. The geometry is passed on to Image Magick directly from the URL.
+
+== Disclaimer
+
+This is alpha software.
