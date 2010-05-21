@@ -5,7 +5,9 @@ var fs = require('fs');
 var path = require('path');
 var exec  = require('child_process').exec;
 
-function resizeImage(imageName, geometry) {
+startTime = null;
+
+function resizeImage(imageName, geometry, afterResizeCallback) {
   if(!RegExp(/^[0-9x]+$/).test(geometry)) {
     throw "Can't deal with this geometry at the moment (it needs to be escaped for the FS)";
   }
@@ -14,7 +16,7 @@ function resizeImage(imageName, geometry) {
   var cmd = ["convert -resize", geometry, origPath, newPath].join(" ");
   sys.log(cmd);
   exec(cmd, function (error, stdout, stderr) {
-    return (error == null);
+    afterResizeCallback(error);
   });
 }
 
@@ -24,9 +26,11 @@ function sendResponse(response, statusCode, data) {
   response.write(data || "", "binary");
   response.end();
   sys.log("HTTP Status code: " + statusCode);
+  sys.log("Request processed in " + (new Date().getTime() - startTime) + "ms");
 }
 
 http.createServer(function(request, response) {
+  startTime = new Date().getTime();
   requestedPath = url.parse(request.url).pathname;
   sys.log("New request for image: " + requestedPath);
   
@@ -45,24 +49,25 @@ http.createServer(function(request, response) {
         if(!err) {
           // have original, make resized image and ship it
           newGeometry = path.dirname(requestedPath).split("/").pop();
-          if (resizeImage(path.basename(requestedPath), newGeometry)) {
-            fs.readFile(originalImagePath, function (err, data) {
-              if (!err) {
-                sendResponse(response, 200, data);
-              } else {
-                // scaling says true but can't access file
-                sendResponse(response, 500, "");
-              }
-            });
-          } else {
-            // scaling failed
-            sendResponse(response, 500, "");
-          }
+          resizeImage(path.basename(requestedPath), newGeometry, function(resizeErr) {
+            if (!resizeErr) {
+              fs.readFile(resizedImagePath, function (err, data) {
+                if (!err) {
+                  sendResponse(response, 200, data);
+                } else {
+                  // scaling says true but can't access file
+                  sendResponse(response, 500, "");
+                }
+              });
+            } else {
+              // scaling failed
+              sendResponse(response, 500, "");
+            }
+          });
         } else {
           // don't have original, either. nothing we can do for you, buddy.
           sendResponse(response, 404, "");          
         }
-        
       });
     }
   });
