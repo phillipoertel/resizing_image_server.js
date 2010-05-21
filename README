@@ -20,7 +20,7 @@ This will set up the following structure:
         |-- 100
         |-- 200
 
-> node resizing_image_server.js`
+> node resizing_image_server.js
 
 Now point your browser to: http://127.0.0.1:8000/200/sammy-davis-jr.jpg
 
