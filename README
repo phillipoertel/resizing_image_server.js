@@ -1,0 +1,19 @@
+A server to resize images and serve them immediately, implemented with node.js and Image Magick.
+
+Example: 
+Request http://127.0.0.1:8000/150/image.jpg, and it sends image.jpg in width 150 to the client, regardless if it existed earlier.
+
+It the image exists, it will be served directly. If not, it is created, cached and then served.
+
+The size in the URL can be anything that Image Magick accepts as geometry (http://is.gd/cjcci), if you create a directory with the geometry string. That way you can control which sizes are available.
+
+To use, set up the following directory structure:
+`-- resizing_image_server
+    `-- images
+        |-- originals
+        `-- resized
+            |-- size 1
+            |-- size 2
+            |-- ...
+
+This is a alpha software. 
