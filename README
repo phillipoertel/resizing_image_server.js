@@ -2,7 +2,7 @@ A server to resize images and serve them immediately, implemented with node.js a
 
 == Example == 
 
-Request http://127.0.0.1:8000/200/sammy-davis-jr.jpg, and it sends this in width 200, regardless if this size existed earlier. The only requirement is that the original size image exists.
+Request http://127.0.0.1:8000/200/sammy-davis-jr.jpg, and it sends this image in width 200, regardless if this size existed earlier. The only requirement is that the original size image exists.
 
 It the resized image already exists, it will be served directly. If not, it is created, cached and served.
 
