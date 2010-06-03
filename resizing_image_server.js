@@ -7,15 +7,22 @@ var exec  = require('child_process').exec;
 
 startTime = null;
 
+LOGGING = false;
+
 function resizeImage(imageName, geometry, afterResizeCallback) {
   if(!RegExp(/^[0-9x]+$/).test(geometry)) {
     throw "Can't deal with this geometry at the moment (it needs to be escaped for the FS)";
   }
   var origPath = path.join(process.cwd(), "images", "originals", imageName);
   var newPath  = path.join(process.cwd(), "images", "resized", geometry, imageName);
-  var cmd = ["convert -resize", geometry, origPath, newPath].join(" ");
-  sys.log(cmd);
+  var cmd = ["convert -strip -resize", geometry, origPath, newPath].join(" ");
+  if (LOGGING) sys.log(cmd);
   exec(cmd, function (error, stdout, stderr) {
+    if (LOGGING) {
+      sys.log(error);
+      sys.log(stdout);
+      sys.log(stdout);
+    }
     afterResizeCallback(error);
   });
 }
@@ -25,18 +32,18 @@ function sendResponse(response, statusCode, data) {
   response.writeHead(statusCode, headers);
   response.write(data || "", "binary");
   response.end();
-  sys.log("HTTP Status code: " + statusCode);
-  sys.log("Request processed in " + (new Date().getTime() - startTime) + "ms");
+  if (LOGGING) sys.log("HTTP Status code: " + statusCode);
+  if (LOGGING) sys.log("Request processed in " + (new Date().getTime() - startTime) + "ms");
 }
 
 http.createServer(function(request, response) {
   startTime = new Date().getTime();
   requestedPath = url.parse(request.url).pathname;
-  sys.log("New request for image: " + requestedPath);
+  if (LOGGING) sys.log("New request for image: " + requestedPath);
   
   // look for resized image
   var resizedImagePath = path.join(process.cwd(), "images", "resized", requestedPath);
-  sys.log("Looking for resized: " + resizedImagePath);
+  if (LOGGING) sys.log("Looking for resized: " + resizedImagePath);
   fs.readFile(resizedImagePath, function (err, data) {
     if(!err) {
       sendResponse(response, 200, data);
@@ -44,7 +51,7 @@ http.createServer(function(request, response) {
       // don't have this size; look for original image
       var originalImagePath = path.join(process.cwd(), "images", "originals",
         path.basename(requestedPath));
-      sys.log("Looking for original: " + originalImagePath);
+      if (LOGGING) sys.log("Looking for original: " + originalImagePath);
       fs.readFile(originalImagePath, function (err, data) {
         if(!err) {
           // have original, make resized image and ship it
