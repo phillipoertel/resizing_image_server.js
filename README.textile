@@ -14,6 +14,7 @@ Install node.js first: http://nodejs.org/#download
 > cd resizing_image_server
 >  rake setup_directories
 This will set up the following structure:
+.pre
 `-- images
     |-- originals
     `-- resized
