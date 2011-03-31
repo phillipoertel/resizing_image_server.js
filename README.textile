@@ -34,7 +34,7 @@ Sizes currently can only be URL- and filesystem neutral strings, but with a bit 
 
 h2. Throughput
 
-Stats for node.js v. 0.4.4 on my local machine (OS X Intel Core 2 Duo 2.66GHz, 4GB RAM, SSD HD)
+Stats for node version 0.1.96 on my local machine (OS X Intel Core 2 Duo 2.66GHz, 4GB RAM, SSD HD)
 
 !https://github.com/phillipoertel/resizing_image_server.js/raw/master/doc/stats.png!
 
