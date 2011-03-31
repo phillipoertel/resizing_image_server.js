@@ -1,12 +1,12 @@
 A server to resize images and serve them immediately, implemented with node.js and Image Magick.
 
-== Example == 
+h2. Example 
 
 Request http://127.0.0.1:8000/200/sammy-davis-jr.jpg, and it sends this image in width 200, regardless if this size existed earlier. The only requirement is that the original size image exists.
 
 It the resized image already exists, it will be served directly. If not, it is created, cached and served.
 
-== Installation
+h2. Installation
 
 Install node.js first: http://nodejs.org/#download
 
@@ -24,13 +24,19 @@ This will set up the following structure:
 
 Now point your browser to: http://127.0.0.1:8000/200/sammy-davis-jr.jpg
 
-== Adding more sizes ==
+h2. Adding more sizes
 
 To add a new size, create a new directory below "resized".
 This is the only way you control which image sizes are available.
 
 Sizes currently can only be URL- and filesystem neutral strings, but with a bit of escaping all Image Magick geometry strings (http://is.gd/cjcci) should be supportable. The geometry is passed on to Image Magick directly from the URL.
 
-== Disclaimer
+h2. Throughput
 
-This is alpha software.
+Stats for node.js v. 0.4.4 on my local machine (OS X Intel Core 2 Duo 2.66GHz, 4GB RAM, SSD HD)
+
+![](https://github.com/phillipoertel/resizing_image_server.js/tree/master/doc/stats.png)
+
+h2. Disclaimer
+
+This is a proof of concept, consider it alpha software.
