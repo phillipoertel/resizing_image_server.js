@@ -15,11 +15,11 @@ Install node.js first: http://nodejs.org/#download
 >  rake setup_directories
 This will set up the following structure:
 
-@`-- images@
-@    |-- originals@
-@    `-- resized@
-@        |-- 100@
-@        |-- 200@
+`-- images
+    |-- originals
+    `-- resized
+        |-- 100
+        |-- 200
 
 > node resizing_image_server.js
 
@@ -36,7 +36,7 @@ h2. Throughput
 
 Stats for node.js v. 0.4.4 on my local machine (OS X Intel Core 2 Duo 2.66GHz, 4GB RAM, SSD HD)
 
-!https://github.com/phillipoertel/resizing_image_server.js/tree/master/doc/stats.png!
+!https://github.com/phillipoertel/resizing_image_server.js/raw/master/doc/stats.png!
 
 h2. Disclaimer
 
