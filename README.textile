@@ -15,11 +15,11 @@ Install node.js first: http://nodejs.org/#download
 >  rake setup_directories
 This will set up the following structure:
 
-@`-- images
-    |-- originals
-    `-- resized
-        |-- 100
-        |-- 200@
+@`-- images@
+@    |-- originals@
+@    `-- resized@
+@        |-- 100@
+@        |-- 200@
 
 > node resizing_image_server.js
 
