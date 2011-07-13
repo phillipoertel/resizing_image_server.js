@@ -11,7 +11,6 @@ LOGGING = process.env.LOGGING;
 
 sys.log("Welcome to resizer.");
 
-// object to make paths and stuff.
 var resizer = {
   
   'server': function(request, response) {
@@ -54,11 +53,12 @@ var resizer = {
     });  
   },
   
+  // object to make the image paths.
   'Image': function(requestPath) {
     this.requestPath  = requestPath;
-    this.geometry     = path.dirname(this.requestPath).split("/")[1];
+    this.geometry     = this.requestPath.split("/")[1];
     this.resizedPath  = path.join(process.cwd(), "images", "resized", this.requestPath);
-    this.originalPath = path.join(process.cwd(), "images", (requestPath.replace(this.geometry, "originals")));
+    this.originalPath = path.join(process.cwd(), "images", this.requestPath.replace(this.geometry, "originals"));
     if (LOGGING) { sys.log(util.inspect(this)); }
   },
   
