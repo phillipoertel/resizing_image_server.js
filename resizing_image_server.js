@@ -3,78 +3,108 @@ var http = require('http');
 var url = require('url');
 var fs = require('fs');
 var path = require('path');
+var util = require('util');
 var exec  = require('child_process').exec;
 
-startTime = null;
+// do: LOGGING=true node resizing_image_server.js
+LOGGING = process.env.LOGGING;
 
-LOGGING = false;
+sys.log("Welcome to resizer.");
 
-function resizeImage(imageName, geometry, afterResizeCallback) {
-  if(!RegExp(/^[0-9x]+$/).test(geometry)) {
-    throw "Can't deal with this geometry at the moment (it needs to be escaped for the FS)";
-  }
-  var origPath = path.join(process.cwd(), "images", "originals", imageName);
-  var newPath  = path.join(process.cwd(), "images", "resized", geometry, imageName);
-  var cmd = ["convert -strip -resize", geometry, origPath, newPath].join(" ");
-  if (LOGGING) sys.log(cmd);
-  exec(cmd, function (error, stdout, stderr) {
-    if (LOGGING) {
-      if (error) sys.log(error);
-      sys.log(stdout);
-    }
-    afterResizeCallback(error);
-  });
-}
-
-function sendResponse(response, statusCode, data) {
-  var headers = { "Content-Type": "image/jpeg" };
-  response.writeHead(statusCode, headers);
-  response.write(data || "", "binary");
-  response.end();
-  if (LOGGING) sys.log("HTTP Status code: " + statusCode);
-  if (LOGGING) sys.log("Request processed in " + (new Date().getTime() - startTime) + "ms");
-}
-
-http.createServer(function(request, response) {
-  startTime = new Date().getTime();
-  requestedPath = url.parse(request.url).pathname;
-  if (LOGGING) sys.log("New request for image: " + requestedPath);
+// object to make paths and stuff.
+var resizer = {
   
-  // look for resized image
-  var resizedImagePath = path.join(process.cwd(), "images", "resized", requestedPath);
-  if (LOGGING) sys.log("Looking for resized: " + resizedImagePath);
-  fs.readFile(resizedImagePath, function (err, data) {
-    if(!err) {
-      sendResponse(response, 200, data);
-    } else {
-      // don't have this size; look for original image
-      var originalImagePath = path.join(process.cwd(), "images", "originals",
-        path.basename(requestedPath));
-      if (LOGGING) sys.log("Looking for original: " + originalImagePath);
-      fs.readFile(originalImagePath, function (err, data) {
-        if(!err) {
-          // have original, make resized image and ship it
-          newGeometry = path.dirname(requestedPath).split("/").pop();
-          resizeImage(path.basename(requestedPath), newGeometry, function(resizeErr) {
-            if (!resizeErr) {
-              fs.readFile(resizedImagePath, function (err, data) {
-                if (!err) {
-                  sendResponse(response, 200, data);
-                } else {
-                  // scaling says true but can't access file
-                  sendResponse(response, 500, "");
-                }
-              });
-            } else {
-              // scaling failed
-              sendResponse(response, 500, "");
-            }
-          });
-        } else {
-          // don't have original, either. nothing we can do for you, buddy.
-          sendResponse(response, 404, "");          
-        }
-      });
+  'server': function(request, response) {
+    resizer.startTime = new Date().getTime();
+    var image = new resizer.Image(url.parse(request.url).pathname);
+    if (LOGGING) sys.log("New request for image: " + image.requestPath);
+
+    // look for resized image
+    if (LOGGING) sys.log("Looking for resized: " + image.resizedPath);
+    fs.readFile(image.resizedPath, function (err, data) {
+      if(!err) {
+        resizer._respond(response, 200, data);
+      } else {
+        // don't have this size; look for original image
+        if (LOGGING) sys.log("Looking for original: " + image.originalPath);
+        fs.readFile(image.originalPath, function (err, data) {
+          if(!err) {
+            // have original, make resized image and ship it
+            resizer._resize(image, function(resizeErr) {
+              if (!resizeErr) {
+                fs.readFile(image.resizedPath, function (err, data) {
+                  if (!err) {
+                    resizer._respond(response, 200, data);
+                  } else {
+                    // scaling says true but can't access file
+                    resizer._respond(response, 500, "");
+                  }
+                });
+              } else {
+                // scaling failed
+                resizer._respond(response, 500, "");
+              }
+            });
+          } else {
+            // don't have original, either. nothing we can do for you, buddy.
+            resizer._respond(response, 404, "");          
+          }
+        });
+      }
+    });  
+  },
+  
+  'Image': function(requestPath) {
+    this.requestPath  = requestPath;
+    this.geometry     = path.dirname(this.requestPath).split("/")[1];
+    this.resizedPath  = path.join(process.cwd(), "images", "resized", this.requestPath);
+    this.originalPath = path.join(process.cwd(), "images", (requestPath.replace(this.geometry, "originals")));
+    if (LOGGING) { sys.log(util.inspect(this)); }
+  },
+  
+  '_resize': function(image, callback) {
+    if(!RegExp(/^[0-9x]+$/).test(image.geometry)) {
+      throw "Can't deal with this geometry at the moment (it needs to be escaped for the FS)";
     }
-  });
-}).listen(8000);
+    var dir = path.dirname(image.resizedPath);
+
+    path.exists(dir, function(exists) {
+      if (LOGGING) sys.log("dir exists? " + exists);
+      if (!exists) {
+        fs.mkdir(dir, "0777", resizer._imagick(image, callback));
+      } else {
+        resizer._imagick(image, callback);      
+      }
+    });
+  },
+  
+  '_imagick': function(image, callback) {
+    var cmd = ["convert -strip -resize", image.geometry, image.originalPath, image.resizedPath].join(" ");
+    if (LOGGING) sys.log(cmd);
+    exec(cmd, function (error, stdout, stderr) {
+      if (LOGGING) {
+        if (error) sys.log(error);
+        sys.log(stdout);
+      }
+      callback(error);
+    });
+  },
+  
+
+  '_respond': function(response, statusCode, data) {
+    if (statusCode == "200") {
+      contentType = "image/jpeg";    
+    } else {
+      contentType = "text/plain";
+    }
+    var headers = { "Content-Type": contentType };
+    response.writeHead(statusCode, headers);
+    response.write(data || "Sorry, no data. Please check the log.", "binary");
+    response.end();
+    if (LOGGING) sys.log("HTTP Status code: " + statusCode);
+    if (LOGGING) sys.log("Request processed in " + (new Date().getTime() - resizer.startTime) + "ms");
+  }
+
+};
+
+http.createServer(resizer.server).listen(8000);
