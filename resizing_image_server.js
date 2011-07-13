@@ -19,8 +19,7 @@ function resizeImage(imageName, geometry, afterResizeCallback) {
   if (LOGGING) sys.log(cmd);
   exec(cmd, function (error, stdout, stderr) {
     if (LOGGING) {
-      sys.log(error);
-      sys.log(stdout);
+      if (error) sys.log(error);
       sys.log(stdout);
     }
     afterResizeCallback(error);
