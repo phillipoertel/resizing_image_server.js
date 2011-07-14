@@ -21,44 +21,49 @@ var allowedGeometries = function() {
 var resizer = {
   
   'server': function(request, response) {
-    resizer.startTime = new Date().getTime();
-    
-    var image = new resizer.Image(url.parse(request.url).pathname);
-    if (LOGGING) sys.log("New request for image: " + image.requestPath);
-
-    // look for resized image
-    if (LOGGING) sys.log("Looking for resized: " + image.resizedPath);
-    fs.readFile(image.resizedPath, function (err, data) {
-      if(!err) {
-        resizer._respond(response, 200, data);
-      } else {
-        // don't have this size; look for original image
-        if (LOGGING) sys.log("Looking for original: " + image.originalPath);
-        fs.readFile(image.originalPath, function (err, data) {
-          if(!err) {
-            // have original, make resized image and ship it
-            resizer._resize(image, function(resizeErr) {
-              if (!resizeErr) {
-                fs.readFile(image.resizedPath, function (err, data) {
-                  if (!err) {
-                    resizer._respond(response, 200, data);
-                  } else {
-                    // scaling says true but can't access file
-                    resizer._respond(response, 500, "");
-                  }
-                });
-              } else {
-                // scaling failed
-                resizer._respond(response, 500, "");
-              }
-            });
-          } else {
-            // don't have original, either. nothing we can do for you, buddy.
-            resizer._respond(response, 404, "");          
-          }
-        });
-      }
-    });  
+    try {
+      resizer.startTime = new Date().getTime();
+      
+      var image = new resizer.Image(url.parse(request.url).pathname);
+      if (LOGGING) sys.log("New request for image: " + image.requestPath);
+      
+      // look for resized image
+      if (LOGGING) sys.log("Looking for resized: " + image.resizedPath);
+      fs.readFile(image.resizedPath, function (err, data) {
+        if(!err) {
+          resizer._respond(response, 200, data);
+        } else {
+          // don't have this size; look for original image
+          if (LOGGING) sys.log("Looking for original: " + image.originalPath);
+          fs.readFile(image.originalPath, function (err, data) {
+            if(!err) {
+              // have original, make resized image and ship it
+              resizer._resize(image, function(resizeErr) {
+                if (!resizeErr) {
+                  fs.readFile(image.resizedPath, function (err, data) {
+                    if (!err) {
+                      resizer._respond(response, 200, data);
+                    } else {
+                      // scaling says true but can't access file
+                      resizer._respond(response, 500, "");
+                    }
+                  });
+                } else {
+                  // scaling failed
+                  resizer._respond(response, 500, "");
+                }
+              });
+            } else {
+              // don't have original, either. nothing we can do for you, buddy.
+              resizer._respond(response, 404, "");          
+            }
+          });
+        }
+      });  
+    } catch (e) {
+      sys.log("High-level exception caught: " + util.inspect(e));
+      resizer._respond(response, 500, "Sorry, an unexpected exception ocurred.");
+    }
   },
   
   // object to make the image paths.
