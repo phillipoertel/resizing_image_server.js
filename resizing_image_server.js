@@ -65,15 +65,15 @@ var resizer = {
   'Image': function(requestPath) {
     this.requestPath  = requestPath;
     this.geometry     = this.requestPath.split("/")[1];
-    this._ensureValidGeometry(this.geometry);
+    resizer._ensureValidGeometry(this.geometry);
     this.resizedPath  = path.join(process.cwd(), "images", "resized", this.requestPath);
     this.originalPath = path.join(process.cwd(), "images", this.requestPath.replace(this.geometry, "originals"));
     if (LOGGING) { sys.log(util.inspect(this)); }
   },
   
-  '_ensureValidGeometry' = function(geometry) {
-    if (allowedGeometries.indexOf(this.geometry) == -1) {
-        throw "Geometry " + this.geometry + " not allowed";
+  '_ensureValidGeometry': function(geometry) {
+    if (allowedGeometries.indexOf(geometry) == -1) {
+        throw "Geometry " + geometry + " not allowed";
     }
   },
   
@@ -94,7 +94,14 @@ var resizer = {
   },
   
   '_imagick': function(image, callback) {
-    var cmd = ["convert -strip -resize", image.geometry, image.originalPath, image.resizedPath].join(" ");
+    var args = [image.geometry, image.originalPath, image.resizedPath].map(function(a) { 
+      // for now we keep it simple and don't deal with umlauts etc.
+      // this is the last line of defense; the upload of files with unallowed characters into the 
+      // "originals" directory should be prevented in the first place.
+      var whitelist = /[^a-z0-9-._\/]/i;
+      return a.replace(whitelist, "_");
+    });
+    var cmd = "convert -strip -resize " + args.join(" ");
     if (LOGGING) sys.log(cmd);
     exec(cmd, function (error, stdout, stderr) {
       if (LOGGING) {
@@ -104,7 +111,6 @@ var resizer = {
       callback(error);
     });
   },
-  
 
   '_respond': function(response, statusCode, data) {
     if (statusCode == "200") {
