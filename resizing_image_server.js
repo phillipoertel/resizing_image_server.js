@@ -11,10 +11,18 @@ LOGGING = process.env.LOGGING;
 
 sys.log("Welcome to resizer.");
 
+var allowedGeometries = function() {
+  var base = "images/resized";
+  return fs.readdirSync(base).filter(function(entry) {  // Array#filter is like #select in Ruby
+    return fs.statSync(path.join(base, entry)).isDirectory(); 
+  });
+}();
+
 var resizer = {
   
   'server': function(request, response) {
     resizer.startTime = new Date().getTime();
+    
     var image = new resizer.Image(url.parse(request.url).pathname);
     if (LOGGING) sys.log("New request for image: " + image.requestPath);
 
@@ -57,9 +65,16 @@ var resizer = {
   'Image': function(requestPath) {
     this.requestPath  = requestPath;
     this.geometry     = this.requestPath.split("/")[1];
+    this._ensureValidGeometry(this.geometry);
     this.resizedPath  = path.join(process.cwd(), "images", "resized", this.requestPath);
     this.originalPath = path.join(process.cwd(), "images", this.requestPath.replace(this.geometry, "originals"));
     if (LOGGING) { sys.log(util.inspect(this)); }
+  },
+  
+  '_ensureValidGeometry' = function(geometry) {
+    if (allowedGeometries.indexOf(this.geometry) == -1) {
+        throw "Geometry " + this.geometry + " not allowed";
+    }
   },
   
   '_resize': function(image, callback) {
@@ -71,7 +86,7 @@ var resizer = {
     path.exists(dir, function(exists) {
       if (LOGGING) sys.log("dir exists? " + exists);
       if (!exists) {
-        fs.mkdir(dir, "0777", resizer._imagick(image, callback));
+        fs.mkdir(dir, "0755", resizer._imagick(image, callback));
       } else {
         resizer._imagick(image, callback);      
       }
