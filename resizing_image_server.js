@@ -24,67 +24,86 @@ var resizer = {
     try {
       resizer.startTime = new Date().getTime();
       
+      if (LOGGING) sys.log("New request: " + request.url);
+
       var image = new resizer.Image(url.parse(request.url).pathname);
-      if (LOGGING) sys.log("New request for image: " + image.requestPath);
       
-      // look for resized image
-      if (LOGGING) sys.log("Looking for resized: " + image.resizedPath);
-      fs.readFile(image.resizedPath, function (err, data) {
-        if(!err) {
-          resizer._respond(response, 200, data);
-        } else {
-          // don't have this size; look for original image
-          if (LOGGING) sys.log("Looking for original: " + image.originalPath);
-          fs.readFile(image.originalPath, function (err, data) {
-            if(!err) {
-              // have original, make resized image and ship it
-              resizer._resize(image, function(resizeErr) {
-                if (!resizeErr) {
-                  fs.readFile(image.resizedPath, function (err, data) {
-                    if (!err) {
-                      resizer._respond(response, 200, data);
-                    } else {
-                      // scaling says true but can't access file
-                      resizer._respond(response, 500, "");
-                    }
-                  });
-                } else {
-                  // scaling failed
-                  resizer._respond(response, 500, "");
-                }
-              });
-            } else {
-              // don't have original, either. nothing we can do for you, buddy.
-              resizer._respond(response, 404, "");          
-            }
-          });
-        }
-      });  
+      // if the original size image was requested, just serve it.
+      if (resizer._originalSizeRequested(image)) {
+        sys.log("Serving original from " + image.originalPath);
+        resizer._serveFile(image.originalPath, response);
+      } else {
+        // look for resized image
+        if (LOGGING) sys.log("Looking for resized: " + image.resizedPath);
+        fs.readFile(image.resizedPath, function (err, data) {
+          if(!err) {
+            resizer._respond(response, 200, data);
+          } else {
+            // don't have this size; look for original image
+            if (LOGGING) sys.log("Looking for original: " + image.originalPath);
+            fs.readFile(image.originalPath, function (err, data) {
+              if(!err) {
+                // have original, make resized image and ship it
+                resizer._resize(image, function(resizeErr) {
+                  if (!resizeErr) {
+                    resizer._serveFile(image.resizedPath, response);
+                  } else {
+                    // scaling failed
+                    resizer._respond(response, 500, "");
+                  }
+                });
+              } else {
+                // don't have original, either. nothing we can do for you, buddy.
+                resizer._respond(response, 404, "");          
+              }
+            });
+          }
+        });  
+      }
     } catch (e) {
       sys.log("High-level exception caught: " + util.inspect(e));
       resizer._respond(response, 500, "Sorry, an unexpected exception ocurred.");
     }
   },
   
+  '_originalSizeRequested': function(image) {
+    // this may be dangerous.
+    return !image.validGeometry();
+  },
+  
+  '_serveFile': function(path, response) {
+    fs.readFile(path, function (err, data) {
+      if (!err) {
+        resizer._respond(response, 200, data);
+      } else {
+        resizer._respond(response, 500, "");
+      }
+    });
+  },
   // object to make the image paths.
   'Image': function(requestPath) {
+    scope = this;
+    this.validGeometry = function() {
+      return ((scope.geometry != null) && !(allowedGeometries.indexOf(scope.geometry) == -1));
+    };
     this.requestPath  = requestPath;
-    this.geometry     = this.requestPath.split("/")[1];
-    resizer._ensureValidGeometry(this.geometry);
+    this.requestPathParts = this.requestPath.split("/");
+    // this is serious cruft and works for subdirectories only by coincidence
+    this.geometry     = this.requestPathParts.length == 2 ? null : this.requestPathParts[1];
     this.resizedPath  = path.join(process.cwd(), "images", "resized", this.requestPath);
-    this.originalPath = path.join(process.cwd(), "images", this.requestPath.replace(this.geometry, "originals"));
+    if (this.validGeometry()) {
+      sys.log("VALID GEO")
+      this.originalPath = path.join(process.cwd(), "images", this.requestPath.replace(this.geometry, "originals"));
+    } else {
+      sys.log("INVALID GEO")
+      this.originalPath = path.join(process.cwd(), "images", "originals", this.requestPath);
+    }
     if (LOGGING) { sys.log(util.inspect(this)); }
   },
   
-  '_ensureValidGeometry': function(geometry) {
-    if (allowedGeometries.indexOf(geometry) == -1) {
-        throw "Geometry " + geometry + " not allowed";
-    }
-  },
-  
   '_resize': function(image, callback) {
-    if(!RegExp(/^[0-9x]+$/).test(image.geometry)) {
-      throw "Can't deal with this geometry at the moment (it needs to be escaped for the FS)";
+    if (!image.validGeometry()) {
+      throw "Geometry " + geometry + " not allowed";
     }
     var dir = path.dirname(image.resizedPath);
 
@@ -118,14 +137,10 @@ var resizer = {
   },
 
   '_respond': function(response, statusCode, data) {
-    if (statusCode == "200") {
-      contentType = "image/jpeg";    
-    } else {
-      contentType = "text/plain";
-    }
+    var contentType = (statusCode == 200) ? "image/jpeg" : "text/plain";
     var headers = { "Content-Type": contentType };
     response.writeHead(statusCode, headers);
-    response.write(data || "Sorry, no data. Please check the log.", "binary");
+    response.write(data || String(statusCode), "binary");
     response.end();
     if (LOGGING) sys.log("HTTP Status code: " + statusCode);
     if (LOGGING) sys.log("Request processed in " + (new Date().getTime() - resizer.startTime) + "ms");
