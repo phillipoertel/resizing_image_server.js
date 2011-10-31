@@ -1,6 +1,6 @@
 A server to resize images and serve them immediately, implemented with node.js and Image Magick.
 
-h2. Example 
+h2. Example
 
 Request http://127.0.0.1:8000/200/sammy-davis-jr.jpg, and it sends this image in width 200, regardless if this size existed earlier. The only requirement is that the original size image exists.
 
