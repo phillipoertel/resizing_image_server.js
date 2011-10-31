@@ -14,20 +14,20 @@ sys.log("Welcome to resizer.");
 var allowedGeometries = function() {
   var base = "images/resized";
   return fs.readdirSync(base).filter(function(entry) {  // Array#filter is like #select in Ruby
-    return fs.statSync(path.join(base, entry)).isDirectory(); 
+    return fs.statSync(path.join(base, entry)).isDirectory();
   });
 }();
 
 var resizer = {
-  
+
   'server': function(request, response) {
     try {
       resizer.startTime = new Date().getTime();
-      
+
       if (LOGGING) sys.log("New request: " + request.url);
 
       var image = new resizer.Image(url.parse(request.url).pathname);
-      
+
       // if the original size image was requested, just serve it.
       if (resizer._originalSizeRequested(image)) {
         sys.log("Serving original from " + image.originalPath);
@@ -54,23 +54,23 @@ var resizer = {
                 });
               } else {
                 // don't have original, either. nothing we can do for you, buddy.
-                resizer._respond(response, 404, "");          
+                resizer._respond(response, 404, "");
               }
             });
           }
-        });  
+        });
       }
     } catch (e) {
       sys.log("High-level exception caught: " + util.inspect(e));
       resizer._respond(response, 500, "Sorry, an unexpected exception ocurred.");
     }
   },
-  
+
   '_originalSizeRequested': function(image) {
     // this may be dangerous.
     return !image.validGeometry();
   },
-  
+
   '_serveFile': function(path, response) {
     fs.readFile(path, function (err, data) {
       if (!err) {
@@ -100,7 +100,7 @@ var resizer = {
     }
     if (LOGGING) { sys.log(util.inspect(this)); }
   },
-  
+
   '_resize': function(image, callback) {
     if (!image.validGeometry()) {
       throw "Geometry " + geometry + " not allowed";
@@ -112,15 +112,15 @@ var resizer = {
       if (!exists) {
         fs.mkdir(dir, "0755", resizer._imagick(image, callback));
       } else {
-        resizer._imagick(image, callback);      
+        resizer._imagick(image, callback);
       }
     });
   },
-  
+
   '_imagick': function(image, callback) {
-    var args = [image.geometry, image.originalPath, image.resizedPath].map(function(a) { 
+    var args = [image.geometry, image.originalPath, image.resizedPath].map(function(a) {
       // for now we keep it simple and don't deal with umlauts etc.
-      // this is the last line of defense; the upload of files with unallowed characters into the 
+      // this is the last line of defense; the upload of files with unallowed characters into the
       // "originals" directory should be prevented in the first place.
       var whitelist = /[^a-z0-9-._\/]/i;
       return a.replace(whitelist, "_");
