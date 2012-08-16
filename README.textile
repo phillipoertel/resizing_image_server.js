@@ -10,18 +10,25 @@ h2. Installation
 
 Install node.js first: http://nodejs.org/#download
 
-> git clone git@github.com:phillipoertel/resizing_image_server.js.git resizing_image_server
-> cd resizing_image_server
->  rake setup
-This will set up the following structure:
+´´´
+git clone git@github.com:phillipoertel/resizing_image_server.js.git resizing_image_server
+cd resizing_image_server
+rake setup
+´´´
 
+This will set up the following directory structure:
+
+´´´
 `-- images
     |-- originals
     `-- resized
         |-- 100
         |-- 200
+´´´
 
-> node resizing_image_server.js
+Then run:
+
+´node resizing_image_server.js´
 
 Now point your browser to: http://127.0.0.1:8000/200/sammy-davis-jr.jpg
 
