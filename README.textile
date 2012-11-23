@@ -1,4 +1,4 @@
-A server to resize images and serve them immediately, implemented with node.js and Image Magick.
+ In a web application, uploaded images are often needed in different sizes. This project resizes an image when first serving it, and caches it for faster serving on the next requests. This makes it very easy to add new image sizes later on, since nothing has to be pre-generated. The server uses node.js and ImageMagick.
 
 h2. Example
 
